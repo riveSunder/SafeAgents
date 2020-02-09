@@ -21,6 +21,7 @@ class MLP():
         self.output_dim = output_dim
         self.hid_dim = hid_dim
         self.act = act
+        self.final_act = True
         
         self.num_parameters = self.input_dim * self.hid_dim[0]
         self.num_parameters += self.hid_dim[-1] * self.output_dim
@@ -45,6 +46,10 @@ class MLP():
             
         x = np.matmul(x, self.w_h2y) + self.b_h2y
 
+        if self.final_act:
+            x = self.act(x)
+
+
         return x
 
     def init_params(self):
@@ -54,7 +59,7 @@ class MLP():
         start = 0
         end = self.input_dim * self.hid_dim[0]
         self.w_x2h = self.parameters[start:end]\
-                .reshape(self.input_dim, self.hid_dim[0])
+                .reshape(self.input_dim, self.hid_dim[0])/ self.input_dim
         self.b_x2h = np.zeros((1,self.hid_dim[0]))
 
         start = end
@@ -62,11 +67,12 @@ class MLP():
         self.w_hid = {}
         self.b_hid = {}
         for hid_idx in range(1,len(self.hid_dim)):
-            end = start + self.hid_dim[hid_idx-1] * self.hid_dim[hid_idx]
+            end = start + int(self.hid_dim[hid_idx-1] * self.hid_dim[hid_idx])
         
 
             self.w_hid[hid_idx] = self.parameters[start:end]\
-                    .reshape(self.hid_dim[hid_idx-1], self.hid_dim[hid_idx])
+                    .reshape(self.hid_dim[hid_idx-1], self.hid_dim[hid_idx])\
+                    / self.hid_dim[hid_idx-1]
 
             start = end
             
@@ -75,7 +81,9 @@ class MLP():
         end = start + self.hid_dim[-1] * self.output_dim
 
         self.w_h2y = self.parameters[start:end]\
-                .reshape(self.hid_dim[-1], self.output_dim)
+                .reshape(self.hid_dim[-1], self.output_dim)\
+                /self.hid_dim[-1]
+
         self.b_h2y = np.zeros((1, self.output_dim))
 
 
