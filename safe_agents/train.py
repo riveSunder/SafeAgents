@@ -88,7 +88,7 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
     # generate a population
     population = [MLP(input_dim, output_dim, hid_dim) \
             for ii in range(pop_size)]
-#    param_means = np.load("./params2_goal00.npy")
+#    param_means = np.load("./means_gen270.npy")
 #
 #    for ll in range(pop_size):
 #        population[ll].mean = param_means 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
-        train_es(env, obs_dim, act_dim, cost_constraint=25, pop_size=128, max_gen=1024)
+        train_es(env, obs_dim, act_dim, cost_constraint=25, pop_size=64, max_gen=1024)
         
         print("all oK")
 
