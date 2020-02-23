@@ -6,7 +6,7 @@ import time
 from safe_agents.policies import MLP
 from open_safety_gym.envs.puck_env import PuckEnv 
 
-def get_fitness(agent, env, epds, get_cost=True):
+def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
 
     #epd_rewards = []
     #epd_costs = []
@@ -17,7 +17,7 @@ def get_fitness(agent, env, epds, get_cost=True):
         sum_cost = 0
         obs = env.reset()
 
-        while not done and steps < 1000:
+        while not done and steps < max_steps:
             action = agent.forward(obs)
             if len(action.shape) > 1:
                 action = action.squeeze()
@@ -60,6 +60,7 @@ def get_elite_mean(population, reward, cost=None,cost_constraint=2.5):
     elite_cost = cost[:keep] 
     elite_fitness = fitness[:keep]
 
+
     print("population mean cost, rewards: {:.3e}, {:.3e}".format(\
             np.mean(cost), np.mean(fitness)))
 
@@ -88,7 +89,7 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
     # generate a population
     population = [MLP(input_dim, output_dim, hid_dim) \
             for ii in range(pop_size)]
-#    param_means = np.load("./means_gen270.npy")
+#    param_means = np.load("./safe_agents/results/means_gen995.npy")
 #
 #    for ll in range(pop_size):
 #        population[ll].mean = param_means 
@@ -104,8 +105,10 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             print("generation {}".format(gen))
 
             for agent_idx in range(len(population)):
+                max_steps = np.min([2000, 250 + 10* gen])
+                epds = np.max([1,int(10 - gen/10)])
 
-                reward, cost = get_fitness(population[agent_idx], env, epds=2)
+                reward, cost = get_fitness(population[agent_idx], env, epds=epds, max_steps=max_steps)
                 fitnesses.append(reward)
                 costs.append(cost)
             
@@ -157,7 +160,7 @@ if __name__ == "__main__":
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
-        train_es(env, obs_dim, act_dim, cost_constraint=25, pop_size=64, max_gen=1024)
+        train_es(env, obs_dim, act_dim, cost_constraint=1.50, pop_size=64, max_gen=2048)
         
         print("all oK")
 
