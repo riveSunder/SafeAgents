@@ -105,8 +105,8 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             print("generation {}".format(gen))
 
             for agent_idx in range(len(population)):
-                max_steps = np.min([2000, 250 + 10* gen])
-                epds = np.max([1,int(10 - gen/10)])
+                max_steps = 1000 #np.min([2000, 250 + 10* gen])
+                epds = 4 #np.max([1,int(10 - gen/10)])
 
                 reward, cost = get_fitness(population[agent_idx], env, epds=epds, max_steps=max_steps)
                 fitnesses.append(reward)
@@ -129,9 +129,11 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             results["rewards"].append(gen_results[3])
             results["elite_rewards"].append(gen_results[4])
 
-            if gen % 5 == 0:
-                np.save("./means_gen{}.npy".format(gen), param_means)
-                np.save("./temp_results.npy", results)
+            if gen % 50 == 0:
+                np.save("./means_c{}_gen{}.npy".format(\
+                    int(constraint*10),gen), param_means)
+                np.save("./temp_c{}_results.npy".format(\
+                    int(constraint*10)), results)
             del fitnesses
             del costs
 
@@ -139,10 +141,10 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
         pass
 
 
-    np.save("./means_gen{}.npy".format(gen), param_means)
-    np.save("./temp_results.npy", results)
-    import pdb; pdb.set_trace()
-
+    np.save("./means_c{}_gen{}.npy".format(\
+        int(constraint*10),gen), param_means)
+    np.save("./temp_c{}_results.npy".format(\
+        int(constraint*10)), results)
 
 
 if __name__ == "__main__":
@@ -151,16 +153,18 @@ if __name__ == "__main__":
             help="name of environment", default="PuckEnvGoal0-v0")
     parser.add_argument("-a", "--algo", type=str,\
             help="training algo", default="es")
-
+    parser.add_argument("-c", "--constraint", type=float,\
+            help="safety constraint", default=10.0)
 
     args = parser.parse_args()
 
+    constraint = args.constraint
     if "uck" in args.env_name:
         env = PuckEnv(render=False)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
-        train_es(env, obs_dim, act_dim, cost_constraint=1.50, pop_size=64, max_gen=2048)
+        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=64, max_gen=2048)
         
         print("all oK")
 
