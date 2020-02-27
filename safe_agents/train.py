@@ -4,7 +4,8 @@ import argparse
 import time
 
 from safe_agents.policies import MLP
-from open_safety_gym.envs.puck_env import PuckEnv 
+from open_safety_gym.envs.puck_env import PuckEnv
+from open_safety_gym.envs.balance_bot_env import BalanceBotEnv 
 
 def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
 
@@ -34,7 +35,6 @@ def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
     return sum_reward, sum_cost
 
 def get_elite_mean(population, reward, cost=None,cost_constraint=2.5):
-
 
     if cost is not None:
         adjusted_cost = [max([cost_constraint, elem]) for elem in cost]
@@ -166,5 +166,13 @@ if __name__ == "__main__":
 
         train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=64, max_gen=2048)
         
-        print("all oK")
+    elif "alance" in args.env_name:
+        env = BalanceBotEnv(render=False)
+        obs_dim = env.observation_space.sample().shape[0]
+        act_dim = env.action_space.sample().shape[0]
+
+        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=128,\
+                max_gen=2048)
+        
+    print("all oK")
 
