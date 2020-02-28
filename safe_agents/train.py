@@ -11,11 +11,12 @@ def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
 
     #epd_rewards = []
     #epd_costs = []
+    total_steps = 0
+    sum_reward = 0
+    sum_cost = 0
     for epd in range(epds):
         steps = 0
         done = False
-        sum_reward = 0
-        sum_cost = 0
         obs = env.reset()
 
         while not done and steps < max_steps:
@@ -28,11 +29,12 @@ def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
             sum_reward += reward
             sum_cost += info["cost"]
             steps += 1
+        total_steps += steps
 
     sum_reward /= epds
     sum_cost /= epds
 
-    return sum_reward, sum_cost
+    return sum_reward, sum_cost, total_steps
 
 def get_elite_mean(population, reward, cost=None,cost_constraint=2.5):
 
@@ -97,19 +99,21 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
     results = {"costs": [],
             "rewards": [],
             "elite_costs": [],
-            "elite_rewards": []}
+            "elite_rewards": [], 
+            "steps": []}
     try:
         for gen in range(max_gen):
             fitnesses = []
             costs = []
-            print("generation {}".format(gen))
+            total_steps = []
 
             for agent_idx in range(len(population)):
-                max_steps = 1000 #np.min([2000, 250 + 10* gen])
+                max_steps = 2000 #np.min([2000, 250 + 10* gen])
                 epds = 4 #np.max([1,int(10 - gen/10)])
 
-                reward, cost = get_fitness(population[agent_idx], env, epds=epds, max_steps=max_steps)
+                reward, cost, steps = get_fitness(population[agent_idx], env, epds=epds, max_steps=max_steps)
                 fitnesses.append(reward)
+                total_steps.append(steps)
                 costs.append(cost)
             
             try:
@@ -128,14 +132,20 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             results["elite_costs"].append(gen_results[2])
             results["rewards"].append(gen_results[3])
             results["elite_rewards"].append(gen_results[4])
+            results["steps"].append(np.sum(total_steps))
 
             if gen % 50 == 0:
                 np.save("./means_c{}_gen{}.npy".format(\
                     int(constraint*10),gen), param_means)
                 np.save("./temp_c{}_results.npy".format(\
                     int(constraint*10)), results)
+
+            print("generation {} total steps {} steps/epd {}".format(\
+                    gen, np.sum(total_steps), np.sum(total_steps)/(epds*pop_size)))
+
             del fitnesses
             del costs
+            del total_steps
 
     except KeyboardInterrupt:
         pass
@@ -171,7 +181,7 @@ if __name__ == "__main__":
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
-        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=128,\
+        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=64,\
                 max_gen=2048)
         
     print("all oK")
