@@ -155,10 +155,10 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             results["steps"].append(np.sum(total_steps))
 
             if gen % 50 == 0:
-                np.save("./means_c{}_gen{}.npy".format(\
-                    int(constraint*10),gen), param_means)
-                np.save("./temp_c{}_results.npy".format(\
-                    int(constraint*10)), results)
+                np.save("./means_{}_rh{}_c{}_gen{}.npy".format(\
+                    env_name, int(reward_hypothesis), int(constraint*10),gen), param_means)
+                np.save("./temp_{}_rh{}_c{}_results.npy".format(\
+                    env_name, int(reward_hypothesis), int(constraint*10),gen), results)
 
             print("generation {} total steps {} steps/epd {}".format(\
                     gen, np.sum(total_steps), np.sum(total_steps)/(epds*pop_size)))
@@ -170,11 +170,10 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
     except KeyboardInterrupt:
         pass
 
-
-    np.save("./means_c{}_gen{}.npy".format(\
-        int(constraint*10),gen), param_means)
-    np.save("./temp_c{}_results.npy".format(\
-        int(constraint*10)), results)
+    np.save("./means_{}_rh{}_c{}_gen{}.npy".format(\
+        env_name, int(reward_hypothesis), int(constraint*10),gen), param_means)
+    np.save("./temp_{}_rh{}_c{}_results.npy".format(\
+        env_name, int(reward_hypothesis), int(constraint*10),gen), results)
 
 
 if __name__ == "__main__":
@@ -200,6 +199,7 @@ if __name__ == "__main__":
     model = args.model
     pop_size = args.pop_size
 
+    env_name = args.env_name
     if "uck" in args.env_name:
         env = PuckEnv(render=False)
         obs_dim = env.observation_space.sample().shape[0]
