@@ -154,11 +154,11 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             results["elite_rewards"].append(gen_results[4])
             results["steps"].append(np.sum(total_steps))
 
-            if gen % 50 == 0:
-                np.save("./means_c{}_gen{}.npy".format(\
-                    int(constraint*10),gen), param_means)
-                np.save("./temp_c{}_results.npy".format(\
-                    int(constraint*10)), results)
+            #if gen % 50 == 0:
+#                np.save("./means_c{}_gen{}.npy".format(\
+#                    int(constraint*10),gen), param_means)
+#                np.save("./temp_c{}_results.npy".format(\
+#                    int(constraint*10)), results)
 
             print("generation {} total steps {} steps/epd {}".format(\
                     gen, np.sum(total_steps), np.sum(total_steps)/(epds*pop_size)))
@@ -171,10 +171,10 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
         pass
 
 
-    np.save("./means_c{}_gen{}.npy".format(\
-        int(constraint*10),gen), param_means)
-    np.save("./temp_c{}_results.npy".format(\
-        int(constraint*10)), results)
+#    np.save("./means_c{}_gen{}.npy".format(\
+#        int(constraint*10),gen), param_means)
+#    np.save("./temp_c{}_results.npy".format(\
+#        int(constraint*10)), results)
 
 
 if __name__ == "__main__":
@@ -192,6 +192,10 @@ if __name__ == "__main__":
             help="combine cost and reward (reward hypothesis)", default=False)
     parser.add_argument("-p", "--pop_size",type=int,\
             help="population size", default=64)
+    parser.add_argument("-v", "--view", type=bool,\
+            help="render episodes", default = False)
+    parser.add_argument("-g", "--generations", type=int,\
+            help="number of generations", default=1024)
 
     args = parser.parse_args()
 
@@ -199,9 +203,10 @@ if __name__ == "__main__":
     rh = args.reward_hypothesis
     model = args.model
     pop_size = args.pop_size
+    render = args.view
 
     if "uck" in args.env_name:
-        env = PuckEnv(render=False)
+        env = PuckEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
@@ -209,7 +214,7 @@ if __name__ == "__main__":
                 model=model, reward_hypothesis=rh)
         
     elif "alance" in args.env_name:
-        env = BalanceBotEnv(render=False)
+        env = BalanceBotEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
@@ -217,7 +222,7 @@ if __name__ == "__main__":
                 max_gen=2048, model=model, reward_hypothesis=rh)
 
     elif "art" in args.env_name:
-        env = KartEnv(render=False)
+        env = KartEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
