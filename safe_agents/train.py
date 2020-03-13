@@ -60,7 +60,7 @@ def get_elite_mean(population, reward, cost=None,cost_constraint=2.5):
         fitness = [elem[0] for elem in cost_fitness_agent]
         cost = 0.0
 
-    keep = int(0.25 * len(population))
+    keep = int(0.125 * len(population))
 
     elite_pop = population[:keep] 
     elite_cost = cost[:keep] 
@@ -93,6 +93,9 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
     hid_dim = [16,16]
     es_lr = 1e-1
     reward_cost_ratio = 20
+    save_results = True
+    exp_id = "c{}_rh{}_{}".format(int(cost_constraint*10),\
+        bool(reward_hypothesis), str(int(time.time()))[-10:])
     
     # generate a population
     population = [MLP(input_dim, output_dim, hid_dim) \
@@ -111,14 +114,13 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
             "elite_costs": [],
             "elite_rewards": [], 
             "steps": []}
-    
+    t0 = time.time()    
     try:
         for gen in range(max_gen):
             fitnesses = []
             costs = []
             total_steps = []
             rc_fitnesses = []
-            print("generation {}".format(gen))
 
             for agent_idx in range(len(population)):
                 max_steps = steps_per_epd #2000 #np.min([2000, 250 + 10* gen])
@@ -136,6 +138,7 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
                 param_means *= (1 - es_lr)
 
                 if reward_hypothesis:
+                    costs = [el*0 for el in costs]
                     cost_constraint = float("Inf")
                     gen_results = get_elite_mean(population, rc_fitnesses, costs, cost_constraint)
                 else:
@@ -161,14 +164,19 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
             results["elite_rewards"].append(gen_results[4])
             results["steps"].append(np.sum(total_steps))
 
-            #if gen % 50 == 0:
-#                np.save("./means_c{}_gen{}.npy".format(\
-#                    int(constraint*10),gen), param_means)
-#                np.save("./temp_c{}_results.npy".format(\
-#                    int(constraint*10)), results)
+            if save_results and gen % 50 == 0:
+                np.save("./results/means_{}_gen{}.npy".format(\
+                    exp_id, gen), param_means)
+                np.save("./results/temp_{}_results.npy".format(\
+                    exp_id), results)
 
-            print("generation {} total steps {} steps/epd {}".format(\
-                    gen, np.sum(total_steps), np.sum(total_steps)/(epds*pop_size)))
+            elapsed = time.time() - t0
+            epd_elapsed = time.time() - t1
+            t1 = time.time()
+            
+            print("generation: {} total steps: {} elapsed total: {:.3f} this generation: {:.3f}"\
+                    .format(\
+                    gen, np.sum(total_steps), elapsed, epd_elapsed))
 
             del fitnesses
             del costs
@@ -177,10 +185,11 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
     except KeyboardInterrupt:
         pass
 
-#    np.save("./means_c{}_gen{}.npy".format(\
-#        int(constraint*10),gen), param_means)
-#    np.save("./temp_c{}_results.npy".format(\
-#        int(constraint*10)), results)
+    if save_results:
+        np.save("./results/means_{}_gen{}.npy".format(\
+            exp_id, gen), param_means)
+        np.save("./results/temp_{}_results.npy".format(\
+            exp_id), results)
 
 
 if __name__ == "__main__":
