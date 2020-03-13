@@ -7,6 +7,7 @@ from safe_agents.policies import MLP
 from open_safety_gym.envs.puck_env import PuckEnv
 from open_safety_gym.envs.balance_bot_env import BalanceBotEnv 
 from open_safety_gym.envs.kart_env import KartEnv
+from open_safety_gym.envs.hoverboard_env import HoverboardEnv
 
 def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
 
@@ -15,12 +16,14 @@ def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
     total_steps = 0
     sum_reward = 0
     sum_cost = 0
+
     for epd in range(epds):
         steps = 0
         done = False
         obs = env.reset()
-
+        
         while not done and steps < max_steps:
+
             action = agent.forward(obs)
             if len(action.shape) > 1:
                 action = action.squeeze()
@@ -85,7 +88,7 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
         model=None, reward_hypothesis=False):
 
     # hard-coded policy parameters
-    hid_dim = [32,32]
+    hid_dim = [16,16]
     es_lr = 1e-1
     reward_cost_ratio = 20
     
@@ -154,11 +157,11 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             results["elite_rewards"].append(gen_results[4])
             results["steps"].append(np.sum(total_steps))
 
-            if gen % 50 == 0:
-                np.save("./means_{}_rh{}_c{}_gen{}.npy".format(\
-                    env_name, int(reward_hypothesis), int(constraint*10),gen), param_means)
-                np.save("./temp_{}_rh{}_c{}_results.npy".format(\
-                    env_name, int(reward_hypothesis), int(constraint*10),gen), results)
+            #if gen % 50 == 0:
+#                np.save("./means_c{}_gen{}.npy".format(\
+#                    int(constraint*10),gen), param_means)
+#                np.save("./temp_c{}_results.npy".format(\
+#                    int(constraint*10)), results)
 
             print("generation {} total steps {} steps/epd {}".format(\
                     gen, np.sum(total_steps), np.sum(total_steps)/(epds*pop_size)))
@@ -170,10 +173,10 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
     except KeyboardInterrupt:
         pass
 
-    np.save("./means_{}_rh{}_c{}_gen{}.npy".format(\
-        env_name, int(reward_hypothesis), int(constraint*10),gen), param_means)
-    np.save("./temp_{}_rh{}_c{}_results.npy".format(\
-        env_name, int(reward_hypothesis), int(constraint*10),gen), results)
+#    np.save("./means_c{}_gen{}.npy".format(\
+#        int(constraint*10),gen), param_means)
+#    np.save("./temp_c{}_results.npy".format(\
+#        int(constraint*10)), results)
 
 
 if __name__ == "__main__":
@@ -191,6 +194,10 @@ if __name__ == "__main__":
             help="combine cost and reward (reward hypothesis)", default=False)
     parser.add_argument("-p", "--pop_size",type=int,\
             help="population size", default=64)
+    parser.add_argument("-v", "--view", type=bool,\
+            help="render episodes", default = False)
+    parser.add_argument("-g", "--generations", type=int,\
+            help="number of generations", default=1024)
 
     args = parser.parse_args()
 
@@ -198,10 +205,11 @@ if __name__ == "__main__":
     rh = args.reward_hypothesis
     model = args.model
     pop_size = args.pop_size
+    render = args.view
 
     env_name = args.env_name
     if "uck" in args.env_name:
-        env = PuckEnv(render=False)
+        env = PuckEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
@@ -209,7 +217,7 @@ if __name__ == "__main__":
                 model=model, reward_hypothesis=rh)
         
     elif "alance" in args.env_name:
-        env = BalanceBotEnv(render=False)
+        env = BalanceBotEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
@@ -217,12 +225,20 @@ if __name__ == "__main__":
                 max_gen=2048, model=model, reward_hypothesis=rh)
 
     elif "art" in args.env_name:
-        env = KartEnv(render=False)
+        env = KartEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
         train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=pop_size,\
                 max_gen=2048, model=model, reward_hypothesis=rh)
         
+    elif "overboard" in args.env_name:
+        env = HoverboardEnv(render=render)
+
+        obs_dim = env.observation_space.sample().shape[0]
+        act_dim = env.action_space.sample().shape[0]
+
+        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=pop_size,\
+                max_gen=2048, model=model, reward_hypothesis=rh)
     print("all oK")
 
