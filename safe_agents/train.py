@@ -84,8 +84,10 @@ def get_elite_mean(population, reward, cost=None,cost_constraint=2.5):
     return [param_means, np.mean(cost), np.mean(elite_cost), \
             np.mean(fitness), np.mean(elite_fitness)]
 
-def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constraint=0.0, cost_penalty=False,\
-        model=None, reward_hypothesis=False):
+def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
+        cost_constraint=0.0, cost_penalty=False,\
+        model=None, reward_hypothesis=False, steps_per_epd=1000):
+
 
     # hard-coded policy parameters
     hid_dim = [16,16]
@@ -119,13 +121,15 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, cost_constrain
             print("generation {}".format(gen))
 
             for agent_idx in range(len(population)):
-                max_steps = 2000 #np.min([2000, 250 + 10* gen])
+                max_steps = steps_per_epd #2000 #np.min([2000, 250 + 10* gen])
                 epds = 4 #np.max([1,int(10 - gen/10)])
 
-                reward, cost, steps = get_fitness(population[agent_idx], env, epds=epds, max_steps=max_steps)
+                reward, cost, steps = get_fitness(population[agent_idx],\
+                        env, epds=epds, max_steps=max_steps)
                 fitnesses.append(reward)
                 total_steps.append(steps)
                 costs.append(cost)
+                
                 rc_fitnesses.append(reward - cost / reward_cost_ratio)
             
             try:
@@ -198,6 +202,8 @@ if __name__ == "__main__":
             help="render episodes", default = False)
     parser.add_argument("-g", "--generations", type=int,\
             help="number of generations", default=1024)
+    parser.add_argument("-s", "--steps_per_episode", type=int,\
+            help="steps per episode ;)", default=1000)
 
     args = parser.parse_args()
 
@@ -206,6 +212,7 @@ if __name__ == "__main__":
     model = args.model
     pop_size = args.pop_size
     render = args.view
+    steps_per_episode = args.steps_per_episode
 
     env_name = args.env_name
     if "uck" in args.env_name:
@@ -239,6 +246,7 @@ if __name__ == "__main__":
         act_dim = env.action_space.sample().shape[0]
 
         train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=pop_size,\
-                max_gen=2048, model=model, reward_hypothesis=rh)
+                max_gen=2048, model=model, reward_hypothesis=rh,\
+                steps_per_epd=steps_per_episode)
     print("all oK")
 
