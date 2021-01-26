@@ -4,8 +4,8 @@ import argparse
 import time
 
 from safe_agents.policies import MLP
-from open_safety_gym.envs.puck_env import PuckEnv
-from open_safety_gym.envs.balance_bot_env import BalanceBotEnv 
+from open_safety.envs.puck_env import PuckEnv
+from open_safety.envs.balance_bot_env import BalanceBotEnv 
 #from open_safety_gym.envs.kart_env import KartEnv
 #from open_safety_gym.envs.hoverboard_env import HoverboardEnv
 
