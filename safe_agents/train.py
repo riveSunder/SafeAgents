@@ -6,8 +6,8 @@ import time
 from safe_agents.policies import MLP
 from open_safety_gym.envs.puck_env import PuckEnv
 from open_safety_gym.envs.balance_bot_env import BalanceBotEnv 
-from open_safety_gym.envs.kart_env import KartEnv
-from open_safety_gym.envs.hoverboard_env import HoverboardEnv
+#from open_safety_gym.envs.kart_env import KartEnv
+#from open_safety_gym.envs.hoverboard_env import HoverboardEnv
 
 def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
 
@@ -28,6 +28,7 @@ def get_fitness(agent, env, epds, get_cost=True, max_steps=1000):
             if len(action.shape) > 1:
                 action = action.squeeze()
             
+            import pdb; pdb.set_trace()
             obs, reward, done, info = env.step(action)
 
             sum_reward += reward
@@ -84,6 +85,50 @@ def get_elite_mean(population, reward, cost=None,cost_constraint=2.5):
     return [param_means, np.mean(cost), np.mean(elite_cost), \
             np.mean(fitness), np.mean(elite_fitness)]
 
+
+def enjoy(env, input_dim, output_dim, max_episodes=1, model=None, steps_per_epd=1000):
+
+    # hard-coded params
+    hid_dim = [16,16]
+
+    exp_id = "eval_{}".format(str(int(time.time())))
+
+    results = {"costs": [],
+            "rewards": [],
+            "steps": []}
+    
+    pop_size = 1
+    population = [MLP(input_dim, output_dim, hid_dim) \
+            for ii in range(pop_size)]
+
+    if model is not None:
+        param_means = np.load(model)
+
+        for ll in range(pop_size):
+            population[ll].mean = param_means 
+            population[ll].covar *= 1e-3
+            population[ll].init_params() 
+
+    for epd in range(max_episodes):
+
+        reward, cost, steps = get_fitness(population[0], env, epds=1, get_cost=True,\
+                max_steps=steps_per_epd)
+        
+        print("episode {} accumulated reward, cost = {:.3e}, {:.3e}".format(epd, reward, cost))
+
+        results["costs"].append(cost)
+        results["rewards"].append(reward)
+        results["steps"].append(steps)
+
+
+
+    mean_epd_cost = np.mean(results["costs"])
+    mean_epd_reward = np.mean(results["rewards"])
+
+    print("mean episodic reward and cost over {} episodes".format(max_episodes))
+    print("     reward : {:.3e} +/- {:.3e}".format(mean_epd_reward, np.std(results["rewards"])))
+    print("     cost   : {:.3e} +/- {:.3e}".format(mean_epd_cost, np.std(results["costs"])))
+
 def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
         cost_constraint=0.0, cost_penalty=False,\
         model=None, reward_hypothesis=False, steps_per_epd=1000):
@@ -114,6 +159,7 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
             "elite_costs": [],
             "elite_rewards": [], 
             "steps": []}
+
     t0 = time.time()    
     try:
         for gen in range(max_gen):
@@ -171,8 +217,8 @@ def train_es(env, input_dim, output_dim, pop_size=6, max_gen=100, \
                     exp_id), results)
 
             elapsed = time.time() - t0
-            epd_elapsed = time.time() - t1
             t1 = time.time()
+            epd_elapsed = time.time() - t1
             
             print("generation: {} total steps: {} elapsed total: {:.3f} this generation: {:.3f}"\
                     .format(\
@@ -200,19 +246,22 @@ if __name__ == "__main__":
             help="training algo", default="es")
     parser.add_argument("-c", "--constraint", type=float,\
             help="safety constraint", default=9e9)
-
     parser.add_argument("-m", "--model", type=str,\
             help="resume parameters stored at filepath (default None)", default=None)
     parser.add_argument("-r", "--reward_hypothesis", type=bool,\
             help="combine cost and reward (reward hypothesis)", default=False)
     parser.add_argument("-p", "--pop_size",type=int,\
             help="population size", default=64)
-    parser.add_argument("-v", "--view", type=bool,\
+    parser.add_argument("-e", "--enjoy", type=bool,\
             help="render episodes", default = False)
     parser.add_argument("-g", "--generations", type=int,\
             help="number of generations", default=1024)
     parser.add_argument("-s", "--steps_per_episode", type=int,\
             help="steps per episode ;)", default=1000)
+
+    parser.add_argument("-hm", "--how_many_epds", type=int,\
+            help="number of episodes to enjoy", default=3)
+
 
     args = parser.parse_args()
 
@@ -220,42 +269,42 @@ if __name__ == "__main__":
     rh = args.reward_hypothesis
     model = args.model
     pop_size = args.pop_size
-    render = args.view
+    render = args.enjoy
     steps_per_episode = args.steps_per_episode
-
+    max_generations = args.generations
     env_name = args.env_name
+
     if "uck" in args.env_name:
         env = PuckEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
-        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=pop_size, max_gen=2048, \
-                model=model, reward_hypothesis=rh)
         
     elif "alance" in args.env_name:
         env = BalanceBotEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
-        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=pop_size,\
-                max_gen=2048, model=model, reward_hypothesis=rh)
-
     elif "art" in args.env_name:
         env = KartEnv(render=render)
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
-        train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=pop_size,\
-                max_gen=2048, model=model, reward_hypothesis=rh)
-        
     elif "overboard" in args.env_name:
         env = HoverboardEnv(render=render)
 
         obs_dim = env.observation_space.sample().shape[0]
         act_dim = env.action_space.sample().shape[0]
 
+    if not(args.enjoy):
         train_es(env, obs_dim, act_dim, cost_constraint=constraint, pop_size=pop_size,\
-                max_gen=2048, model=model, reward_hypothesis=rh,\
+                max_gen=max_generations, model=model, reward_hypothesis=rh,\
                 steps_per_epd=steps_per_episode)
+    else:
+
+        enjoy(env, obs_dim, act_dim, max_episodes=args.how_many_epds,\
+                model=model, steps_per_epd=1000)
+
+
     print("all oK")
 
